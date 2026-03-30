@@ -3,6 +3,28 @@ export interface ScrapedVideo {
   link: HTMLAnchorElement;
 }
 
+function extractVideoId(href: string): string | null {
+  try {
+    const url = new URL(href, window.location.origin);
+
+    if (url.pathname === "/watch") {
+      const queryVideoId = url.searchParams.get("v");
+      if (queryVideoId && /^[a-zA-Z0-9_-]{11}$/.test(queryVideoId)) {
+        return queryVideoId;
+      }
+    }
+
+    const pathMatch = url.pathname.match(/\/watch\/([a-zA-Z0-9_-]{11})(?:\/|$)/);
+    if (pathMatch) {
+      return pathMatch[1]!;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 export function isPlaylistCard(renderer: Element, link: HTMLAnchorElement, href: string): boolean {
   if (
     renderer.querySelector(
@@ -38,10 +60,8 @@ export function scrapeVideoIds(): ScrapedVideo[] {
     if (!href) continue;
     if (isPlaylistCard(renderer, link, href)) continue;
 
-    const match = href.match(/\/watch\?v=([a-zA-Z0-9_-]{11})/);
-    if (!match) continue;
-
-    const videoId = match[1]!;
+    const videoId = extractVideoId(href);
+    if (!videoId) continue;
     if (seen.has(videoId)) continue;
     seen.add(videoId);
 
