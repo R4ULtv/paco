@@ -1,6 +1,7 @@
 export interface ScrapedVideo {
   videoId: string;
   link: HTMLAnchorElement;
+  renderer: Element;
 }
 
 function extractVideoId(href: string): string | null {
@@ -65,7 +66,7 @@ export function scrapeVideoIds(): ScrapedVideo[] {
     if (seen.has(videoId)) continue;
     seen.add(videoId);
 
-    videos.push({ videoId, link });
+    videos.push({ videoId, link, renderer });
   }
 
   return videos;

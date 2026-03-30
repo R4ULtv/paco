@@ -13,3 +13,7 @@
   bottom: 8px;
   margin-inline-end: 0;
 }
+
+.paco-hidden-video {
+  display: none !important;
+}

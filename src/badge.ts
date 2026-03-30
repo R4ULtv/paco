@@ -134,3 +134,7 @@ export function renderBadge(thumbnailLink: HTMLAnchorElement, count: number): vo
   updateBadgeContent(host, label, title, severity);
   placeBadgeHost(thumbnailLink, host);
 }
+
+export function removeBadge(thumbnailLink: HTMLAnchorElement): void {
+  thumbnailLink.querySelector<HTMLElement>(`.${BADGE_HOST_CLASS}`)?.remove();
+}
