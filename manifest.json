@@ -4,8 +4,10 @@
   "version": "0.1.0",
   "description": "Paco remembers what YouTube keeps repeating to you.",
   "icons": {
-    "48": "icons/paco-48.png",
-    "128": "icons/paco-128.png"
+    "16": "assets/paco-16.png",
+    "32": "assets/paco-32.png",
+    "48": "assets/paco-48.png",
+    "128": "assets/paco-128.png"
   },
   "content_scripts": [
     {
