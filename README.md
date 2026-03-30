@@ -1,4 +1,4 @@
-# Paco
+![Paco](./src/assets/og-image.webp)
 
 **Paco remembers what YouTube keeps repeating to you.**
 
