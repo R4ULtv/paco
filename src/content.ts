@@ -5,6 +5,7 @@ import { renderBadge } from "./badge";
 const sessionId = crypto.randomUUID();
 let isProcessing = false;
 let needsAnotherPass = false;
+
 function isPacoMutationNode(node: Node): boolean {
   return (
     node instanceof Element &&

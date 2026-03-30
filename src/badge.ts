@@ -45,18 +45,31 @@ function applyInlineTheme(badge: HTMLElement, text: HTMLDivElement, severity: Se
   text.style.removeProperty("color");
 }
 
-export function renderBadge(thumbnailLink: HTMLAnchorElement, count: number): void {
-  const severity = getSeverity(count);
-  const label = severity === "new" ? "NEW" : `${count}x`;
-  const title =
-    severity === "new"
-      ? "First time Paco sees this video on your feed"
-      : `Paco has seen YouTube push this video to you ${count} times`;
+function getBadgeCopy(count: number, severity: Severity): { label: string; title: string } {
+  return {
+    label: severity === "new" ? "NEW" : `${count}x`,
+    title:
+      severity === "new"
+        ? "First time Paco sees this video on your feed"
+        : `Paco has seen YouTube push this video to you ${count} times`,
+  };
+}
+
+function getOrCreateBadgeHost(thumbnailLink: HTMLAnchorElement): HTMLElement {
   const host =
     thumbnailLink.querySelector<HTMLElement>(`.${BADGE_HOST_CLASS}`) ??
     document.createElement("yt-thumbnail-badge-view-model");
   host.className = `${BADGE_HOST_CLASS} ytThumbnailBadgeViewModelHost ytThumbnailBottomOverlayViewModelBadge`;
 
+  return host;
+}
+
+function updateBadgeContent(
+  host: HTMLElement,
+  label: string,
+  title: string,
+  severity: Severity,
+): void {
   const badge =
     host.querySelector<HTMLElement>("badge-shape") ?? document.createElement("badge-shape");
   badge.className =
@@ -80,8 +93,11 @@ export function renderBadge(thumbnailLink: HTMLAnchorElement, count: number): vo
   if (badge.parentElement !== host) {
     host.appendChild(badge);
   }
-  applyInlineTheme(badge, text, severity);
 
+  applyInlineTheme(badge, text, severity);
+}
+
+function placeBadgeHost(thumbnailLink: HTMLAnchorElement, host: HTMLElement): void {
   const durationBadge = getDurationBadge(thumbnailLink);
   if (durationBadge?.parentElement) {
     const targetParent = durationBadge.parentElement;
@@ -108,4 +124,13 @@ export function renderBadge(thumbnailLink: HTMLAnchorElement, count: number): vo
   if (host.parentElement !== fallbackContainer) {
     fallbackContainer.appendChild(host);
   }
+}
+
+export function renderBadge(thumbnailLink: HTMLAnchorElement, count: number): void {
+  const severity = getSeverity(count);
+  const { label, title } = getBadgeCopy(count, severity);
+  const host = getOrCreateBadgeHost(thumbnailLink);
+
+  updateBadgeContent(host, label, title, severity);
+  placeBadgeHost(thumbnailLink, host);
 }
