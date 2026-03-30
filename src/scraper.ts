@@ -6,7 +6,14 @@ export interface ScrapedVideo {
 export function isPlaylistCard(renderer: Element, link: HTMLAnchorElement, href: string): boolean {
   if (
     renderer.querySelector(
-      "yt-collections-stack, ytd-rich-grid-playlist-renderer, ytd-playlist-thumbnail",
+      [
+        "yt-collections-stack",
+        "yt-collection-thumbnail-view-model",
+        "ytd-rich-grid-playlist-renderer",
+        "ytd-playlist-thumbnail",
+        "[class*='collection-stack']",
+        "a[href*='/playlist?list=']",
+      ].join(", "),
     )
   ) {
     return true;
