@@ -24,7 +24,7 @@ async function runBuild(): Promise<void> {
   const result = await Bun.build({
     entrypoints: ["src/content.ts"],
     outdir: OUTDIR,
-    naming: "content.js",
+    naming: "[name].js",
     minify: !isWatchMode,
     sourcemap: isWatchMode ? "inline" : "none",
     define: {
