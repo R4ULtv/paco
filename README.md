@@ -4,40 +4,19 @@
 
 Paco is a Chrome extension that tracks repeated videos on the YouTube home feed and adds a small badge when a video has already been shown to you before.
 
-## Stack
+## Install (Release)
 
-- TypeScript
-- Bun
-- Oxlint / Oxfmt
-- Dexie + IndexedDB
-- Chrome Manifest V3
+Paco is installed from the latest release package: [Download the latest release](../../releases/latest).
 
-## Load in Chrome
+1. Go to the project's **Releases** page on GitHub.
+2. Download the latest `.zip` release asset.
+3. Unzip it on your computer.
+4. Open `chrome://extensions` in Chrome.
+5. Enable **Developer mode**.
+6. Click **Load unpacked**.
+7. Select the unzipped release folder.
 
-1. Run `bun run build`
-2. Open `chrome://extensions`
-3. Enable **Developer mode**
-4. Click **Load unpacked**
-5. Select the `dist/` folder
-
-## Releases
-
-To publish a new GitHub release:
-
-1. Update the version in `manifest.json`
-2. Commit and push the change
-3. Create and push a matching tag
-
-```bash
-git add manifest.json
-git commit -m "chore: release v0.1.0"
-git push origin main
-
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-The tag must match the version in `manifest.json`.
+After install, open YouTube and Paco will start marking repeated videos on your home feed.
 
 ## Privacy
 
