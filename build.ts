@@ -2,8 +2,8 @@ import { cpSync, mkdirSync, readdirSync, rmSync, watch } from "node:fs";
 import { join } from "node:path";
 
 const OUTDIR = "dist";
-const ICONS_OUTDIR = join(OUTDIR, "icons");
-const ICONS_SRCDIR = "src/icons";
+const ASSETS_OUTDIR = join(OUTDIR, "assets");
+const ASSETS_SRCDIR = "src/assets";
 const isWatchMode = process.argv.includes("--watch");
 const mode = isWatchMode ? "development" : "production";
 let rebuildTimer: ReturnType<typeof setTimeout> | null = null;
@@ -12,14 +12,14 @@ function copyStaticFiles(): void {
   cpSync("src/paco.css", join(OUTDIR, "paco.css"));
   cpSync("manifest.json", join(OUTDIR, "manifest.json"));
 
-  for (const iconName of readdirSync(ICONS_SRCDIR)) {
-    cpSync(join(ICONS_SRCDIR, iconName), join(ICONS_OUTDIR, iconName));
+  for (const assetName of readdirSync(ASSETS_SRCDIR)) {
+    cpSync(join(ASSETS_SRCDIR, assetName), join(ASSETS_OUTDIR, assetName));
   }
 }
 
 async function runBuild(): Promise<void> {
   rmSync(OUTDIR, { force: true, recursive: true });
-  mkdirSync(ICONS_OUTDIR, { recursive: true });
+  mkdirSync(ASSETS_OUTDIR, { recursive: true });
 
   const result = await Bun.build({
     entrypoints: ["src/content.ts"],
