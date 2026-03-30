@@ -3,6 +3,18 @@ export interface ScrapedVideo {
   link: HTMLAnchorElement;
 }
 
+export function isPlaylistCard(renderer: Element, link: HTMLAnchorElement, href: string): boolean {
+  if (
+    renderer.querySelector(
+      "yt-collections-stack, ytd-rich-grid-playlist-renderer, ytd-playlist-thumbnail",
+    )
+  ) {
+    return true;
+  }
+
+  return href.includes("/playlist") || href.includes("list=") || link.matches("[is-playlist]");
+}
+
 export function scrapeVideoIds(): ScrapedVideo[] {
   const seen = new Set<string>();
   const videos: ScrapedVideo[] = [];
@@ -17,6 +29,7 @@ export function scrapeVideoIds(): ScrapedVideo[] {
 
     const href = link.getAttribute("href");
     if (!href) continue;
+    if (isPlaylistCard(renderer, link, href)) continue;
 
     const match = href.match(/\/watch\?v=([a-zA-Z0-9_-]{11})/);
     if (!match) continue;

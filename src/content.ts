@@ -29,9 +29,8 @@ async function processVideos(): Promise<void> {
 
   isProcessing = true;
 
-  const videos = scrapeVideoIds();
-
   try {
+    const videos = scrapeVideoIds();
     for (const { videoId, link } of videos) {
       await recordSighting(videoId, sessionId);
 
