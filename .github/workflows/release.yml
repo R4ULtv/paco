@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate project
+        run: bun run check
+
+      - name: Build extension
+        run: bun run build
+
+      - name: Read manifest version
+        id: manifest
+        run: |
+          VERSION=$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('manifest.json', 'utf8')).version)")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Validate tag version
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          MANIFEST_VERSION: ${{ steps.manifest.outputs.version }}
+        run: |
+          if [ "v$MANIFEST_VERSION" != "$TAG_NAME" ]; then
+            echo "Tag $TAG_NAME does not match manifest version v$MANIFEST_VERSION"
+            exit 1
+          fi
+
+      - name: Create release archive
+        env:
+          VERSION: ${{ steps.manifest.outputs.version }}
+        run: |
+          mkdir -p release-assets
+          cd dist
+          zip -r "../release-assets/paco-v${VERSION}.zip" .
+
+      - name: Generate release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          REPOSITORY: ${{ github.repository }}
+          TAG_NAME: ${{ github.ref_name }}
+          VERSION: ${{ steps.manifest.outputs.version }}
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 --match 'v*.*.*' "${TAG_NAME}^" 2>/dev/null || true)
+          RELEASE_DATE=$(date -u +"%Y-%m-%d")
+          NOTES_FILE="release-assets/release-notes.md"
+          DOWNLOAD_URL="https://github.com/${REPOSITORY}/releases/download/${TAG_NAME}/paco-v${VERSION}.zip"
+
+          {
+            echo "# Paco ${TAG_NAME}"
+            echo
+            echo "- Version: \`${VERSION}\`"
+            echo "- Release date: \`${RELEASE_DATE}\`"
+            echo "- Download: [paco-v${VERSION}.zip](${DOWNLOAD_URL})"
+            echo
+            echo "## What's included"
+            echo
+            echo "- Production build of the Chrome extension from \`dist/\`"
+            echo "- Ready to load in Chrome via \`chrome://extensions\` -> **Load unpacked** after extracting the zip"
+            echo
+            echo "## Changes"
+            echo
+
+            if [ -n "$PREVIOUS_TAG" ]; then
+              echo "Changes since \`${PREVIOUS_TAG}\`:"
+              echo
+              git log "${PREVIOUS_TAG}..${TAG_NAME}" --pretty=format:'- %s (%h)'
+              echo
+              echo
+              echo "## Full diff"
+              echo
+              echo "[Compare ${PREVIOUS_TAG}...${TAG_NAME}](https://github.com/${REPOSITORY}/compare/${PREVIOUS_TAG}...${TAG_NAME})"
+            else
+              echo "Initial release."
+              echo
+              git log "${TAG_NAME}" --pretty=format:'- %s (%h)'
+            fi
+          } > "$NOTES_FILE"
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-assets/release-notes.md
+          files: release-assets/paco-v${{ steps.manifest.outputs.version }}.zip
