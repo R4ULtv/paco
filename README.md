@@ -42,3 +42,11 @@ The tag must match the version in `manifest.json`.
 ## Privacy
 
 Paco runs entirely locally. No analytics, no backend, no telemetry.
+
+## Why Not Sync Across Devices?
+
+Sync is intentionally out of scope for now.
+
+Paco is designed to be fast, local-first, and privacy-first. Adding cross-device sync would mean introducing user accounts, a central database, conflict handling, and additional security work. That would add several layers of complexity and risk that do not fit the current goals of the project.
+
+For now, the product direction is simple: keep data on the device, keep the architecture small, and avoid turning a lightweight extension into a service.
