@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Paco",
+  "version": "0.1.0",
+  "description": "Paco remembers what YouTube keeps repeating to you.",
+  "icons": {
+    "48": "icons/paco-48.png",
+    "128": "icons/paco-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": ["content.js"],
+      "css": ["paco.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": ["storage"],
+  "host_permissions": ["*://www.youtube.com/*"]
+}
