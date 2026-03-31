@@ -8,12 +8,14 @@ interface ObservedVideo {
   count?: number;
   countPromise?: Promise<number>;
   hasBeenHandled?: boolean;
+  sessionId?: string;
 }
 
-const sessionId = crypto.randomUUID();
 const PROCESS_VIDEOS_DEBOUNCE_MS = 120;
+let sessionId = crypto.randomUUID();
 let isProcessing = false;
 let needsAnotherPass = false;
+let lastKnownUrl = window.location.href;
 const rendererVideoMap = new WeakMap<Element, ObservedVideo>();
 
 function preloadCount(renderer: Element, video: ObservedVideo): Promise<number> {
@@ -34,9 +36,16 @@ function preloadCount(renderer: Element, video: ObservedVideo): Promise<number> 
 }
 
 async function handleVisibleVideo(renderer: Element, video: ObservedVideo): Promise<void> {
-  if (!renderer.isConnected || !video.link.isConnected || video.hasBeenHandled) return;
+  if (
+    !renderer.isConnected ||
+    !video.link.isConnected ||
+    (video.hasBeenHandled && video.sessionId === sessionId)
+  ) {
+    return;
+  }
 
   video.hasBeenHandled = true;
+  video.sessionId = sessionId;
 
   let countBefore = video.count;
   if (countBefore === undefined) {
@@ -153,6 +162,16 @@ function scheduleProcessVideos(delayMs = 500): void {
   }, delayMs);
 }
 
+function refreshSessionIfNeeded(): void {
+  const currentUrl = window.location.href;
+  if (currentUrl === lastKnownUrl) {
+    return;
+  }
+
+  lastKnownUrl = currentUrl;
+  sessionId = crypto.randomUUID();
+}
+
 const observer = new MutationObserver((mutations) => {
   if (shouldIgnoreMutations(mutations)) return;
 
@@ -165,9 +184,11 @@ observer.observe(document.body, {
 });
 
 window.addEventListener("yt-navigate-finish", () => {
+  refreshSessionIfNeeded();
   scheduleProcessVideos(0);
 });
 
 window.addEventListener("yt-page-data-updated", () => {
+  refreshSessionIfNeeded();
   scheduleProcessVideos(0);
 });
