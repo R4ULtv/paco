@@ -46,7 +46,6 @@ export function isPlaylistCard(renderer: Element, link: HTMLAnchorElement, href:
 }
 
 export function scrapeVideoIds(): ScrapedVideo[] {
-  const seen = new Set<string>();
   const videos: ScrapedVideo[] = [];
 
   const renderers = document.querySelectorAll("ytd-rich-item-renderer");
@@ -63,8 +62,6 @@ export function scrapeVideoIds(): ScrapedVideo[] {
 
     const videoId = extractVideoId(href);
     if (!videoId) continue;
-    if (seen.has(videoId)) continue;
-    seen.add(videoId);
 
     videos.push({ videoId, link, renderer });
   }
