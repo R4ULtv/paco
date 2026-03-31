@@ -11,9 +11,9 @@ interface ObservedVideo {
 }
 
 const sessionId = crypto.randomUUID();
+const PROCESS_VIDEOS_DEBOUNCE_MS = 120;
 let isProcessing = false;
 let needsAnotherPass = false;
-const observedRenderers = new WeakSet<Element>();
 const rendererVideoMap = new WeakMap<Element, ObservedVideo>();
 
 function preloadCount(renderer: Element, video: ObservedVideo): Promise<number> {
@@ -100,6 +100,19 @@ const visibilityObserver = new IntersectionObserver(
   },
 );
 
+function observeRenderer(renderer: Element, videoId: string, link: HTMLAnchorElement): void {
+  const currentVideo = rendererVideoMap.get(renderer);
+  if (currentVideo?.videoId === videoId && currentVideo.link === link) {
+    return;
+  }
+
+  rendererVideoMap.set(renderer, { videoId, link });
+  preloadObserver.unobserve(renderer);
+  visibilityObserver.unobserve(renderer);
+  preloadObserver.observe(renderer);
+  visibilityObserver.observe(renderer);
+}
+
 async function processVideos(): Promise<void> {
   if (isProcessing) {
     needsAnotherPass = true;
@@ -111,12 +124,7 @@ async function processVideos(): Promise<void> {
   try {
     const videos = scrapeVideoIds();
     for (const { videoId, link, renderer } of videos) {
-      if (observedRenderers.has(renderer)) continue;
-
-      observedRenderers.add(renderer);
-      rendererVideoMap.set(renderer, { videoId, link });
-      preloadObserver.observe(renderer);
-      visibilityObserver.observe(renderer);
+      observeRenderer(renderer, videoId, link);
     }
   } finally {
     isProcessing = false;
@@ -138,16 +146,28 @@ initializePaco().catch((e) => console.error("[Paco] Error:", e));
 
 // Watch for lazy-loaded videos
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-const observer = new MutationObserver((mutations) => {
-  if (shouldIgnoreMutations(mutations)) return;
-
+function scheduleProcessVideos(delayMs = 500): void {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     processVideos().catch((e) => console.error("[Paco] Error:", e));
-  }, 500);
+  }, delayMs);
+}
+
+const observer = new MutationObserver((mutations) => {
+  if (shouldIgnoreMutations(mutations)) return;
+
+  scheduleProcessVideos(PROCESS_VIDEOS_DEBOUNCE_MS);
 });
 
 observer.observe(document.body, {
   childList: true,
   subtree: true,
+});
+
+window.addEventListener("yt-navigate-finish", () => {
+  scheduleProcessVideos(0);
+});
+
+window.addEventListener("yt-page-data-updated", () => {
+  scheduleProcessVideos(0);
 });
