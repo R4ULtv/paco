@@ -1,6 +1,12 @@
 import { deleteExpiredSightings, recordSighting, getSightingCount } from "./db";
 import { scrapeVideoIds } from "./scraper";
 import { renderBadge } from "./badge";
+import {
+  DEFAULT_SETTINGS,
+  getSettings,
+  getSettingsFromStorageChange,
+  type PacoSettings,
+} from "./settings";
 
 interface ObservedVideo {
   videoId: string;
@@ -12,11 +18,21 @@ interface ObservedVideo {
 }
 
 const PROCESS_VIDEOS_DEBOUNCE_MS = 120;
+const HIDDEN_VIDEO_CLASS = "paco-hidden-video";
 let sessionId = crypto.randomUUID();
 let isProcessing = false;
 let needsAnotherPass = false;
 let lastKnownUrl = window.location.href;
-const rendererVideoMap = new WeakMap<Element, ObservedVideo>();
+let currentSettings: PacoSettings = { ...DEFAULT_SETTINGS };
+const rendererVideoMap = new Map<Element, ObservedVideo>();
+
+function shouldHideVideo(count: number, settings: PacoSettings): boolean {
+  return settings.mode === "block" && count > settings.blockThreshold;
+}
+
+function setRendererHidden(renderer: Element, hidden: boolean): void {
+  renderer.classList.toggle(HIDDEN_VIDEO_CLASS, hidden);
+}
 
 function preloadCount(renderer: Element, video: ObservedVideo): Promise<number> {
   if (video.count !== undefined) {
@@ -29,10 +45,27 @@ function preloadCount(renderer: Element, video: ObservedVideo): Promise<number> 
 
   video.countPromise = getSightingCount(video.videoId).then((count) => {
     video.count = count;
+    video.countPromise = undefined;
     return count;
   });
 
   return video.countPromise;
+}
+
+async function applyVisibility(renderer: Element, video: ObservedVideo): Promise<number | null> {
+  if (!renderer.isConnected || !video.link.isConnected) {
+    return null;
+  }
+
+  const count = await preloadCount(renderer, video);
+  const hidden = shouldHideVideo(count, currentSettings);
+  setRendererHidden(renderer, hidden);
+
+  if (!hidden) {
+    renderBadge(video.link, count);
+  }
+
+  return count;
 }
 
 async function handleVisibleVideo(renderer: Element, video: ObservedVideo): Promise<void> {
@@ -56,7 +89,11 @@ async function handleVisibleVideo(renderer: Element, video: ObservedVideo): Prom
   const nextCount = wasInserted ? countBefore + 1 : countBefore;
 
   video.count = nextCount;
-  renderBadge(video.link, nextCount);
+  setRendererHidden(renderer, shouldHideVideo(nextCount, currentSettings));
+
+  if (!renderer.classList.contains(HIDDEN_VIDEO_CLASS)) {
+    renderBadge(video.link, nextCount);
+  }
 }
 
 function isPacoMutationNode(node: Node): boolean {
@@ -82,7 +119,7 @@ const preloadObserver = new IntersectionObserver(
       const video = rendererVideoMap.get(entry.target);
       if (!video) continue;
 
-      void preloadCount(entry.target, video);
+      void applyVisibility(entry.target, video);
       preloadObserver.unobserve(entry.target);
     }
   },
@@ -112,14 +149,44 @@ const visibilityObserver = new IntersectionObserver(
 function observeRenderer(renderer: Element, videoId: string, link: HTMLAnchorElement): void {
   const currentVideo = rendererVideoMap.get(renderer);
   if (currentVideo?.videoId === videoId && currentVideo.link === link) {
+    void applyVisibility(renderer, currentVideo);
     return;
   }
 
   rendererVideoMap.set(renderer, { videoId, link });
   preloadObserver.unobserve(renderer);
   visibilityObserver.unobserve(renderer);
+  setRendererHidden(renderer, false);
   preloadObserver.observe(renderer);
   visibilityObserver.observe(renderer);
+  void applyVisibility(renderer, rendererVideoMap.get(renderer)!).catch((e) =>
+    console.error("[Paco] Error:", e),
+  );
+}
+
+async function reapplySettings(): Promise<void> {
+  const tasks: Promise<unknown>[] = [];
+
+  for (const [renderer, video] of rendererVideoMap) {
+    if (!renderer.isConnected || !video.link.isConnected) {
+      rendererVideoMap.delete(renderer);
+      continue;
+    }
+
+    tasks.push(applyVisibility(renderer, video));
+  }
+
+  await Promise.all(tasks);
+}
+
+function pruneObservedRenderers(): void {
+  for (const [renderer, video] of rendererVideoMap) {
+    if (!renderer.isConnected || !video.link.isConnected) {
+      preloadObserver.unobserve(renderer);
+      visibilityObserver.unobserve(renderer);
+      rendererVideoMap.delete(renderer);
+    }
+  }
 }
 
 async function processVideos(): Promise<void> {
@@ -131,6 +198,8 @@ async function processVideos(): Promise<void> {
   isProcessing = true;
 
   try {
+    pruneObservedRenderers();
+
     const videos = scrapeVideoIds();
     for (const { videoId, link, renderer } of videos) {
       observeRenderer(renderer, videoId, link);
@@ -146,6 +215,7 @@ async function processVideos(): Promise<void> {
 }
 
 async function initializePaco(): Promise<void> {
+  currentSettings = await getSettings();
   await deleteExpiredSightings();
   await processVideos();
 }
@@ -191,4 +261,18 @@ window.addEventListener("yt-navigate-finish", () => {
 window.addEventListener("yt-page-data-updated", () => {
   refreshSessionIfNeeded();
   scheduleProcessVideos(0);
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local") {
+    return;
+  }
+
+  const nextSettings = getSettingsFromStorageChange(changes);
+  if (!nextSettings) {
+    return;
+  }
+
+  currentSettings = nextSettings;
+  void reapplySettings().catch((e) => console.error("[Paco] Error:", e));
 });

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Paco</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <h1>Paco</h1>
+
+      <section class="section">
+        <p class="label">Mode</p>
+        <label class="option">
+          <input type="radio" name="mode" value="logs" />
+          <span>Logs</span>
+        </label>
+        <label class="option">
+          <input type="radio" name="mode" value="block" />
+          <span>Block</span>
+        </label>
+      </section>
+
+      <section class="section" id="block-threshold-section">
+        <div class="threshold-header">
+          <p class="label">Block after more than</p>
+          <strong id="block-threshold-value">10</strong>
+        </div>
+        <input id="block-threshold" type="range" step="1" />
+      </section>
+    </main>
+
+    <script src="./popup.js" type="module"></script>
+  </body>
+</html>

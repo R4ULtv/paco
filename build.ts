@@ -10,6 +10,8 @@ let rebuildTimer: ReturnType<typeof setTimeout> | null = null;
 
 function copyStaticFiles(): void {
   cpSync("src/paco.css", join(OUTDIR, "paco.css"));
+  cpSync("src/popup.html", join(OUTDIR, "popup.html"));
+  cpSync("src/popup.css", join(OUTDIR, "popup.css"));
   cpSync("manifest.json", join(OUTDIR, "manifest.json"));
 
   for (const assetName of readdirSync(ASSETS_SRCDIR)) {
@@ -22,7 +24,7 @@ async function runBuild(): Promise<void> {
   mkdirSync(ASSETS_OUTDIR, { recursive: true });
 
   const result = await Bun.build({
-    entrypoints: ["src/content.ts"],
+    entrypoints: ["src/content.ts", "src/popup.ts"],
     outdir: OUTDIR,
     naming: "[name].js",
     minify: !isWatchMode,

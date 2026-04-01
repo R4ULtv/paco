@@ -1,0 +1,52 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-width: 240px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  background: #ffffff;
+  color: #111111;
+}
+
+.popup {
+  padding: 16px;
+}
+
+.section + .section {
+  margin-top: 16px;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: 18px;
+}
+
+.label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.option + .option {
+  margin-top: 8px;
+}
+
+.threshold-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#block-threshold {
+  width: 100%;
+}
