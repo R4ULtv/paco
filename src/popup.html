@@ -8,24 +8,47 @@
   </head>
   <body>
     <main class="popup">
-      <h1>Paco</h1>
+      <header class="header">
+        <div>
+          <h1>Paco</h1>
+          <p class="subtitle">Keep YouTube repeats under control.</p>
+        </div>
+        <a
+          class="brand-link"
+          href="https://github.com/r4ultv/paco"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Open Paco on GitHub"
+        >
+          <img class="brand-logo" src="./assets/paco-128.png" alt="Paco logo" />
+        </a>
+      </header>
 
-      <section class="section">
-        <p class="label">Mode</p>
-        <label class="option">
-          <input type="radio" name="mode" value="logs" />
-          <span>Logs</span>
-        </label>
-        <label class="option">
-          <input type="radio" name="mode" value="block" />
-          <span>Block</span>
-        </label>
+      <section class="section section-compact">
+        <div class="section-heading">
+          <p class="label">Mode</p>
+          <p class="hint" id="mode-description">Track repeated videos only.</p>
+        </div>
+
+        <div class="mode-picker" role="radiogroup" aria-label="Paco mode">
+          <label class="mode-option">
+            <input type="radio" name="mode" value="logs" />
+            <span>Logs</span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="block" />
+            <span>Block</span>
+          </label>
+        </div>
       </section>
 
       <section class="section" id="block-threshold-section">
         <div class="threshold-header">
-          <p class="label">Block after more than</p>
-          <strong id="block-threshold-value">10</strong>
+          <div>
+            <p class="label">Threshold</p>
+            <p class="hint">Hide videos when up too often.</p>
+          </div>
+          <strong class="threshold-value" id="block-threshold-value">10 videos</strong>
         </div>
         <input id="block-threshold" type="range" step="1" />
       </section>
