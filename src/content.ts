@@ -1,6 +1,6 @@
 import { deleteExpiredSightings, recordSighting, getSightingCount } from "./db";
 import { scrapeVideoIds } from "./scraper";
-import { renderBadge } from "./badge";
+import { renderBadge, removeBadge } from "./badge";
 import {
   DEFAULT_SETTINGS,
   getSettings,
@@ -25,6 +25,10 @@ let needsAnotherPass = false;
 let lastKnownUrl = window.location.href;
 let currentSettings: PacoSettings = { ...DEFAULT_SETTINGS };
 const rendererVideoMap = new Map<Element, ObservedVideo>();
+
+function isYouTubeHomePage(): boolean {
+  return window.location.pathname === "/";
+}
 
 function shouldHideVideo(count: number, settings: PacoSettings): boolean {
   return settings.mode === "block" && count > settings.blockThreshold;
@@ -53,11 +57,15 @@ function preloadCount(renderer: Element, video: ObservedVideo): Promise<number> 
 }
 
 async function applyVisibility(renderer: Element, video: ObservedVideo): Promise<number | null> {
-  if (!renderer.isConnected || !video.link.isConnected) {
+  if (!isYouTubeHomePage() || !renderer.isConnected || !video.link.isConnected) {
     return null;
   }
 
   const count = await preloadCount(renderer, video);
+  if (!isYouTubeHomePage()) {
+    return null;
+  }
+
   const hidden = shouldHideVideo(count, currentSettings);
   setRendererHidden(renderer, hidden);
 
@@ -70,6 +78,7 @@ async function applyVisibility(renderer: Element, video: ObservedVideo): Promise
 
 async function handleVisibleVideo(renderer: Element, video: ObservedVideo): Promise<void> {
   if (
+    !isYouTubeHomePage() ||
     !renderer.isConnected ||
     !video.link.isConnected ||
     (video.hasBeenHandled && video.sessionId === sessionId)
@@ -84,8 +93,15 @@ async function handleVisibleVideo(renderer: Element, video: ObservedVideo): Prom
   if (countBefore === undefined) {
     countBefore = await preloadCount(renderer, video);
   }
+  if (!isYouTubeHomePage()) {
+    return;
+  }
 
   const wasInserted = await recordSighting(video.videoId, sessionId);
+  if (!isYouTubeHomePage()) {
+    return;
+  }
+
   const nextCount = wasInserted ? countBefore + 1 : countBefore;
 
   video.count = nextCount;
@@ -164,7 +180,23 @@ function observeRenderer(renderer: Element, videoId: string, link: HTMLAnchorEle
   );
 }
 
+function clearObservedRenderers(): void {
+  for (const [renderer, video] of rendererVideoMap) {
+    preloadObserver.unobserve(renderer);
+    visibilityObserver.unobserve(renderer);
+    setRendererHidden(renderer, false);
+    removeBadge(video.link);
+  }
+
+  rendererVideoMap.clear();
+}
+
 async function reapplySettings(): Promise<void> {
+  if (!isYouTubeHomePage()) {
+    clearObservedRenderers();
+    return;
+  }
+
   const tasks: Promise<unknown>[] = [];
 
   for (const [renderer, video] of rendererVideoMap) {
@@ -190,6 +222,11 @@ function pruneObservedRenderers(): void {
 }
 
 async function processVideos(): Promise<void> {
+  if (!isYouTubeHomePage()) {
+    clearObservedRenderers();
+    return;
+  }
+
   if (isProcessing) {
     needsAnotherPass = true;
     return;
