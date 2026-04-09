@@ -4,6 +4,13 @@ export interface ScrapedVideo {
   renderer: Element;
 }
 
+const THUMBNAIL_LINK_SELECTORS = [
+  "a.ytLockupViewModelContentImage",
+  "a.yt-lockup-view-model__content-image",
+  "a#thumbnail",
+  "a[aria-hidden='true'][href^='/watch']",
+];
+
 function extractVideoId(href: string): string | null {
   try {
     const url = new URL(href, window.location.origin);
@@ -45,15 +52,27 @@ export function isPlaylistCard(renderer: Element, link: HTMLAnchorElement, href:
   return href.includes("/playlist") || href.includes("list=") || link.matches("[is-playlist]");
 }
 
+function findThumbnailLink(renderer: Element): HTMLAnchorElement | null {
+  for (const selector of THUMBNAIL_LINK_SELECTORS) {
+    const link = renderer.querySelector<HTMLAnchorElement>(selector);
+    if (!link) continue;
+
+    const href = link.getAttribute("href");
+    if (href?.includes("/watch")) {
+      return link;
+    }
+  }
+
+  return null;
+}
+
 export function scrapeVideoIds(): ScrapedVideo[] {
   const videos: ScrapedVideo[] = [];
 
   const renderers = document.querySelectorAll("ytd-rich-item-renderer");
 
   for (const renderer of renderers) {
-    const link = renderer.querySelector<HTMLAnchorElement>(
-      "a.yt-lockup-view-model__content-image, a#thumbnail",
-    );
+    const link = findThumbnailLink(renderer);
     if (!link) continue;
 
     const href = link.getAttribute("href");
