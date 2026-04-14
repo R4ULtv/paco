@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Paco",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Paco remembers what YouTube keeps repeating to you.",
   "icons": {
     "16": "assets/paco-16.png",
