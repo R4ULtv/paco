@@ -14,6 +14,17 @@ const BADGE_TEXT_CLASS = "paco-badge__text";
 const DURATION_BADGE_HOST_SELECTOR = `yt-thumbnail-badge-view-model.ytThumbnailBottomOverlayViewModelBadge:not(.${BADGE_HOST_CLASS})`;
 const LEGACY_DURATION_BADGE_SELECTOR =
   "ytd-thumbnail-overlay-time-status-renderer, badge-shape.yt-badge-shape--thumbnail-badge";
+const DEFAULT_BADGE_SHAPE_CLASSES = [
+  "yt-badge-shape",
+  "yt-badge-shape--thumbnail-default",
+  "yt-badge-shape--thumbnail-badge",
+  "yt-badge-shape--typography",
+  "ytBadgeShapeHost",
+  "ytBadgeShapeThumbnailDefault",
+  "ytBadgeShapeThumbnailBadge",
+  "ytBadgeShapeTypography",
+].join(" ");
+const DEFAULT_BADGE_TEXT_CLASSES = ["yt-badge-shape__text", "ytBadgeShapeText"].join(" ");
 
 function getDurationBadge(thumbnailLink: HTMLAnchorElement): HTMLElement | null {
   const hostBadge = thumbnailLink.querySelector<HTMLElement>(DURATION_BADGE_HOST_SELECTOR);
@@ -45,6 +56,34 @@ function applyInlineTheme(badge: HTMLElement, text: HTMLDivElement, severity: Se
   text.style.removeProperty("color");
 }
 
+function mergeClassNames(...classNames: Array<string | null | undefined>): string {
+  const tokens = new Set<string>();
+
+  for (const className of classNames) {
+    if (!className) continue;
+
+    for (const token of className.split(/\s+/)) {
+      if (!token) continue;
+      tokens.add(token);
+    }
+  }
+
+  return [...tokens].join(" ");
+}
+
+function getBadgeShapeTemplate(thumbnailLink: HTMLAnchorElement): HTMLElement | null {
+  const durationBadge = getDurationBadge(thumbnailLink);
+  if (!durationBadge) {
+    return null;
+  }
+
+  if (durationBadge.matches("badge-shape")) {
+    return durationBadge;
+  }
+
+  return durationBadge.querySelector<HTMLElement>("badge-shape");
+}
+
 function getBadgeCopy(count: number, severity: Severity): { label: string; title: string } {
   return {
     label: severity === "new" ? "NEW" : `${count}x`,
@@ -65,20 +104,29 @@ function getOrCreateBadgeHost(thumbnailLink: HTMLAnchorElement): HTMLElement {
 }
 
 function updateBadgeContent(
+  thumbnailLink: HTMLAnchorElement,
   host: HTMLElement,
   label: string,
   title: string,
   severity: Severity,
 ): void {
+  const template = getBadgeShapeTemplate(thumbnailLink);
   const badge =
     host.querySelector<HTMLElement>("badge-shape") ?? document.createElement("badge-shape");
-  badge.className =
-    `${BADGE_CLASS} paco-${severity} yt-badge-shape yt-badge-shape--thumbnail-default ` +
-    "yt-badge-shape--thumbnail-badge yt-badge-shape--typography";
+  badge.className = mergeClassNames(
+    BADGE_CLASS,
+    `paco-${severity}`,
+    template?.className,
+    DEFAULT_BADGE_SHAPE_CLASSES,
+  );
 
   const text =
     badge.querySelector<HTMLDivElement>(`.${BADGE_TEXT_CLASS}`) ?? document.createElement("div");
-  text.className = `${BADGE_TEXT_CLASS} yt-badge-shape__text`;
+  text.className = mergeClassNames(
+    BADGE_TEXT_CLASS,
+    template?.querySelector<HTMLElement>("div")?.className,
+    DEFAULT_BADGE_TEXT_CLASSES,
+  );
 
   if (text.textContent !== label) {
     text.textContent = label;
@@ -131,7 +179,7 @@ export function renderBadge(thumbnailLink: HTMLAnchorElement, count: number): vo
   const { label, title } = getBadgeCopy(count, severity);
   const host = getOrCreateBadgeHost(thumbnailLink);
 
-  updateBadgeContent(host, label, title, severity);
+  updateBadgeContent(thumbnailLink, host, label, title, severity);
   placeBadgeHost(thumbnailLink, host);
 }
 
