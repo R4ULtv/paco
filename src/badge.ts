@@ -84,6 +84,14 @@ function getBadgeShapeTemplate(thumbnailLink: HTMLAnchorElement): HTMLElement | 
   return durationBadge.querySelector<HTMLElement>("badge-shape");
 }
 
+function getBadgeTextTemplate(template: HTMLElement | null): HTMLElement | null {
+  if (!template) {
+    return null;
+  }
+
+  return template.querySelector<HTMLElement>(".yt-badge-shape__text, .ytBadgeShapeText");
+}
+
 function getBadgeCopy(count: number, severity: Severity): { label: string; title: string } {
   return {
     label: severity === "new" ? "NEW" : `${count}x`,
@@ -111,6 +119,7 @@ function updateBadgeContent(
   severity: Severity,
 ): void {
   const template = getBadgeShapeTemplate(thumbnailLink);
+  const textTemplate = getBadgeTextTemplate(template);
   const badge =
     host.querySelector<HTMLElement>("badge-shape") ?? document.createElement("badge-shape");
   badge.className = mergeClassNames(
@@ -124,7 +133,7 @@ function updateBadgeContent(
     badge.querySelector<HTMLDivElement>(`.${BADGE_TEXT_CLASS}`) ?? document.createElement("div");
   text.className = mergeClassNames(
     BADGE_TEXT_CLASS,
-    template?.querySelector<HTMLElement>("div")?.className,
+    textTemplate?.className,
     DEFAULT_BADGE_TEXT_CLASSES,
   );
 
